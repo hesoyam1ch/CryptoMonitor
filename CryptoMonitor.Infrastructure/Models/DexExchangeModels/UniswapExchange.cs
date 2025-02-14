@@ -17,4 +17,9 @@ public class UniswapExchange : IDexExchange
     {
         throw new NotImplementedException();
     }
+
+    public Task GetLastPriceAsync(string baseCurrency, string quoteCurrency)
+    {
+        throw new NotImplementedException();
+    }
 }

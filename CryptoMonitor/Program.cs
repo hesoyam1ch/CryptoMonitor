@@ -1,4 +1,3 @@
-
 using CryptoMonitor.Infrastructure.Abstraction;
 using CryptoMonitor.Infrastructure.Abstraction.AbstractExchangeFactory;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
@@ -37,9 +36,8 @@ var raydiumExchange = dexFactory.CreateExchange(DexEnum.Raydium);
 var uniswapExchange = dexFactory.CreateExchange(DexEnum.Uniswap);
 
 await binanceExchange.StartClientAsync();
-await kuCoinExchange.StartClientAsync();
-await raydiumExchange.StartClientAsync();
-await uniswapExchange.StartClientAsync();
+await kuCoinExchange.GetLastPriceAsync("ETH","BTC");
+await binanceExchange.GetLastPriceAsync("ETH" ,"BTC");
 
 Console.WriteLine("sdsd");
 

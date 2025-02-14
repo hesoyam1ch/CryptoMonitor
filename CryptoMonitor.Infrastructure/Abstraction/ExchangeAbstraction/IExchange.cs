@@ -6,5 +6,6 @@ public interface IExchange
 
     Task StartClientAsync();
     Task TestConnection();
-    
+    Task GetLastPriceAsync(string baseCurrency,string quoteCurrency);
+
 }

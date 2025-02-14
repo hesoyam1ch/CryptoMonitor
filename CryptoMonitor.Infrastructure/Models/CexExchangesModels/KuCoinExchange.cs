@@ -1,6 +1,8 @@
-﻿using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
+﻿using CryptoExchange.Net.Authentication;
+using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
 using Kucoin.Net.Clients;
+using Kucoin.Net.Objects;
 
 namespace CryptoMonitor.Infrastructure.Models.CexExchangesModels;
 
@@ -15,9 +17,39 @@ public class KuCoinExchange : ICexExchange
        Console.WriteLine($"{result.RequestBody}");
     }
 
+    public KuCoinExchange SetApiCreaditials(KucoinApiCredentials apiCredentials)
+    {
+        _restClient.SetApiCredentials(apiCredentials);
+        return this;
+    }
     public Task TestConnection()
     {
         throw new NotImplementedException();
+    }
+
+    public async Task GetLastPriceAsync(string baseCurrency,string quoteCurrency)
+    {
+        var exchangeSymbolsInfo = await _restClient.SpotApi.ExchangeData.GetSymbolsAsync();
+        var availableCurrency = exchangeSymbolsInfo?.Data;
+        var pairCurrency = availableCurrency
+            .First(s => s.BaseAsset.Equals(baseCurrency, StringComparison.OrdinalIgnoreCase) && 
+                        s.QuoteAsset.Equals(quoteCurrency,StringComparison.OrdinalIgnoreCase));
+        
+
+        if (pairCurrency != null)
+        {
+            var tickerResult = await _restClient.SpotApi.ExchangeData.GetTickerAsync(pairCurrency.Name);
+
+            if (tickerResult.Success)
+            {
+                Console.WriteLine($"Price {pairCurrency.Name}: {tickerResult.Data.LastPrice}");
+            }
+            else
+            {
+                Console.WriteLine($"Can't get price for: {pairCurrency.Name}");
+            }
+        }
+
     }
 
     public KuCoinExchange()
