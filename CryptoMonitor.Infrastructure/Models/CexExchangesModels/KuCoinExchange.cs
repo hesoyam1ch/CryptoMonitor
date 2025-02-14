@@ -27,9 +27,9 @@ public class KuCoinExchange : ICexExchange
         throw new NotImplementedException();
     }
 
-    public async Task GetLastPriceAsync(string baseCurrency,string quoteCurrency)
+    public async Task GetLastPriceAsync(string baseCurrency,string quoteCurrency) //can be abstract realisation 
     {
-        var exchangeSymbolsInfo = await _restClient.SpotApi.ExchangeData.GetSymbolsAsync();
+        var exchangeSymbolsInfo = await _restClient.SpotApi.ExchangeData.GetSymbolsAsync(); // need to one request when client start, and caching data
         var availableCurrency = exchangeSymbolsInfo?.Data;
         var pairCurrency = availableCurrency
             .First(s => s.BaseAsset.Equals(baseCurrency, StringComparison.OrdinalIgnoreCase) && 
