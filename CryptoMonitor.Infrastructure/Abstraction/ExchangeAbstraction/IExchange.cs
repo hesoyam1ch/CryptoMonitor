@@ -2,9 +2,9 @@
 
 public interface IExchange
 {
-    string Name { get; set; }
+    string Name { get; init; }
 
-    Task StartClient();
+    Task StartClientAsync();
     Task TestConnection();
     
 }

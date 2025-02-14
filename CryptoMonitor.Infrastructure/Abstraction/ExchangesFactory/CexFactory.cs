@@ -14,20 +14,32 @@ public enum CexEnum
 public class CexFactory : IAbstractExchangeFactory<IExchange, CexEnum>
 {
     private readonly Dictionary<CexEnum, ICexExchange> _exchanges;
-
+    
     public CexFactory(IEnumerable<ICexExchange> exchanges)
     {
-        _exchanges = exchanges.ToDictionary(e => (CexEnum)Enum.Parse(typeof(CexEnum), e.GetType().Name));
+        _exchanges = exchanges.ToDictionary(e => GetExchangeType<CexEnum>(e));
     }
+
     
     public IExchange CreateExchange(CexEnum exchangeType)
     {
-        return exchangeType switch
+        if (_exchanges.TryGetValue(exchangeType, out var exchange))
         {
-            CexEnum.Binance => new BinanceExchange(),
-            _ => throw new ArgumentException("Invalid CEX type", nameof(exchangeType))
-        };
+            return exchange;
+        }
 
+        throw new ArgumentException($"Invalid CEX type: {exchangeType}", nameof(exchangeType));
+    }
+
+    
+    private static TEnum GetExchangeType<TEnum>(IExchange exchange) where TEnum : Enum
+    {
+        var attribute = (ExchangeTypeAttribute?)Attribute.GetCustomAttribute(exchange.GetType(), typeof(ExchangeTypeAttribute));
+        if (attribute?.ExchangeType is TEnum enumValue)
+        {
+            return enumValue;
+        }
+        throw new ArgumentException($"Exchange {exchange.GetType().Name} is missing ExchangeTypeAttribute or has an invalid type.");
     }
 
    
