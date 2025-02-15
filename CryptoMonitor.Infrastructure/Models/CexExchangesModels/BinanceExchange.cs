@@ -54,6 +54,11 @@ public class BinanceExchange : ICexExchange
         }
     }
 
+    public Task SubscribeAndRunAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public Task TestConnection()
     {
         throw new NotImplementedException();

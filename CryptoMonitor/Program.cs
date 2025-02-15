@@ -38,6 +38,7 @@ var uniswapExchange = dexFactory.CreateExchange(DexEnum.Uniswap);
 await binanceExchange.StartClientAsync();
 await kuCoinExchange.GetLastPriceAsync("ETH","BTC");
 await binanceExchange.GetLastPriceAsync("ETH" ,"BTC");
+await uniswapExchange.StartClientAsync();
 
 Console.WriteLine("sdsd");
 

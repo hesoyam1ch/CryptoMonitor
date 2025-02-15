@@ -52,6 +52,11 @@ public class KuCoinExchange : ICexExchange
 
     }
 
+    public Task SubscribeAndRunAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public KuCoinExchange()
     {
         _restClient = new KucoinRestClient();
