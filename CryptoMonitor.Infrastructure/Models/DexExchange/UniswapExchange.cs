@@ -41,38 +41,106 @@ public class UniswapExchange : IDexExchange
 
         int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
 
-        var pairContractAddressV2 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunction>()
+        var liqudityPoolAddressV2 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunction>()
             .QueryAsync<string>(uniSwapFactoryAddressV2,
                 new GetPairFunction() { TokenA = wethAddress, TokenB = uniAddress });
 
 
-        string pairContractAddressV3 = "";
+        string liqudityPoolAddressV3 = "";
         //for fee..
-        pairContractAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
+        liqudityPoolAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
             .QueryAsync<string>(uniSwapFactoryAddressV3,
                 new GetPairFunctionV3() { TokenA = wethAddress, TokenB = uniAddress, FeeAmount = 3000 });
 
-        await GetPriceFromPoolV3(pairContractAddressV3);
+        await GetPriceFromPoolV3Async(liqudityPoolAddressV3);
+        await GetPriceFromPoolV2Async(liqudityPoolAddressV2);
     }
 
-    private async Task GetPriceFromPoolV3(string poolContractAddress)
+    private async Task GetPriceFromPoolV3Async(string poolContractAddress)
     {
-        var slotValue = await _web3Ws.Eth.GetContractQueryHandler<SlotFunction>()
+        var slotResult = await _web3Ws.Eth.GetContractQueryHandler<SlotFunction>()
             .QueryAsync<Slot0OutputDTO>(poolContractAddress, new SlotFunction());
-        BigInteger numerator = BigInteger.Pow(slotValue.SqrtPriceX96, 2);
-        BigInteger denominator = BigInteger.Pow(2, 192);
+        // BigInteger numerator = BigInteger.Pow(slotValue.SqrtPriceX96, 2);
+        // BigInteger denominator = BigInteger.Pow(2, 192);
 
-        double price = Math.Pow(1.0001, slotValue.Tick);
+        double price = Math.Pow(1.0001, slotResult.Tick);
         double reversePrice = 1 / price;
-        double adjustedPrice = price * Math.Pow(10, 18 - 18);
+      //  double adjustedPrice = price * Math.Pow(10, 18 - 18); maybe need calculate decimal token
 
         Console.WriteLine($"Exact Price (Uniswap V3): {price}");
 
 
         double poolFee = 0.003; // 0.25% для Uniswap (можна замінити на змінну для V3)
-        double priceWithPoolFee = price * (1 + poolFee);
+        double priceWithPoolFee = price * (1 + poolFee); 
         double priceWithAdjuctedPoolFee = reversePrice * (1 + poolFee);
         Console.WriteLine($"Price with pool fee: {priceWithPoolFee}");
+    }
+
+    private async Task GetPriceFromPoolV2Async(string poolContractAddress)
+    {
+        var contract = _web3Ws.Eth.GetContract(@"[
+  {
+    ""constant"": true,
+    ""inputs"": [],
+    ""name"": ""getReserves"",
+    ""outputs"": [
+      {
+        ""internalType"": ""uint112"",
+        ""name"": ""_reserve0"",
+        ""type"": ""uint112""
+      },
+      {
+        ""internalType"": ""uint112"",
+        ""name"": ""_reserve1"",
+        ""type"": ""uint112""
+      },
+      {
+        ""internalType"": ""uint32"",
+        ""name"": ""_blockTimestampLast"",
+        ""type"": ""uint32""
+      }
+    ],
+    ""payable"": false,
+    ""stateMutability"": ""view"",
+    ""type"": ""function""
+  },
+  {
+    ""constant"": true,
+    ""inputs"": [],
+    ""name"": ""token0"",
+    ""outputs"": [
+      {
+        ""internalType"": ""address"",
+        ""name"": """",
+        ""type"": ""address""
+      }
+    ],
+    ""payable"": false,
+    ""stateMutability"": ""view"",
+    ""type"": ""function""
+  },
+  {
+    ""constant"": true,
+    ""inputs"": [],
+    ""name"": ""token1"",
+    ""outputs"": [
+      {
+        ""internalType"": ""address"",
+        ""name"": """",
+        ""type"": ""address""
+      }
+    ],
+    ""payable"": false,
+    ""stateMutability"": ""view"",
+    ""type"": ""function""
+  }
+]
+", poolContractAddress);
+        var getReservesFunction = contract.GetFunction("getReserves");
+        var reserves = await getReservesFunction.CallDeserializingToObjectAsync<ReservesDTO>();
+        decimal price = (decimal)reserves.Reserve1 / (decimal)reserves.Reserve0;
+        decimal reversePrice = 1 / price;
+        Console.WriteLine("sdsds");
     }
 
     public Task TestConnection()

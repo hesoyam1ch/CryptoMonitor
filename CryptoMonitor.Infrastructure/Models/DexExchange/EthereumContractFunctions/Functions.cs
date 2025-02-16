@@ -4,12 +4,35 @@ using Nethereum.Contracts;
 
 namespace CryptoMonitor.Infrastructure.Models.DexExchangeModels.EthereumContractFunctions;
 
+#region PoolV2Function
+
+[Function("getReserves", "tuple(uint112,uint112,uint32)")]
+public class GetReservesFunction : FunctionMessage
+{
+}
+
+[FunctionOutput]
+public class ReservesDTO : IFunctionOutputDTO
+{
+    [Parameter("uint112", "_reserve0", 1)] 
+    public BigInteger Reserve0 { get; set; }
+
+    [Parameter("uint112", "_reserve1", 2)] 
+    public BigInteger Reserve1 { get; set; }
+
+
+    [Parameter("uint32", "_blockTimestampLast", 3)]
+    public uint BlockTimestampLast { get; set; }
+}
+
+#endregion
+
+#region PoolV3Function
+
 [Function("slot0", typeof(Slot0OutputDTO))]
 public class SlotFunction : FunctionMessage
 {
-    
 }
-
 
 [Function("getPool", "address")]
 public class GetPairFunctionV3 : FunctionMessage
@@ -32,8 +55,7 @@ public class Slot0OutputDTO : IFunctionOutputDTO
     [Parameter("uint160", "sqrtPriceX96", 1)]
     public BigInteger SqrtPriceX96 { get; set; }
 
-    [Parameter("int24", "tick", 2)]
-    public int Tick { get; set; }
+    [Parameter("int24", "tick", 2)] public int Tick { get; set; }
 
     [Parameter("uint16", "observationIndex", 3)]
     public ushort ObservationIndex { get; set; }
@@ -44,9 +66,9 @@ public class Slot0OutputDTO : IFunctionOutputDTO
     [Parameter("uint16", "observationCardinalityNext", 5)]
     public ushort ObservationCardinalityNext { get; set; }
 
-    [Parameter("uint8", "feeProtocol", 6)]
-    public byte FeeProtocol { get; set; }
+    [Parameter("uint8", "feeProtocol", 6)] public byte FeeProtocol { get; set; }
 
-    [Parameter("bool", "unlocked", 7)]
-    public bool Unlocked { get; set; }
+    [Parameter("bool", "unlocked", 7)] public bool Unlocked { get; set; }
 }
+
+#endregion
