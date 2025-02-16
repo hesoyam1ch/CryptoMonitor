@@ -1,5 +1,6 @@
 ﻿using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
+using CryptoMonitor.Infrastructure.Models.DexExchangeModels.EthereumContractFunctions;
 using Microsoft.Extensions.Configuration;
 using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.Contracts;
@@ -16,12 +17,13 @@ namespace CryptoMonitor.Infrastructure.Models.DexExchangeModels;
 [ExchangeType(DexEnum.Uniswap)]
 public class UniswapExchange : IDexExchange
 {
-    public Dictionary<string, string> _tokenContracts;
+    private const string uniSwapFactoryAddressV2 = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+    private const string uniSwapFactoryAddressV3 = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
 
+    public Dictionary<string, string> _tokenContracts;
     private string _webSocketUrl;
     private StreamingWebSocketClient _webSocketClient;
     private Web3 _web3Ws;
-
     public string Name { get; init; }
 
     public UniswapExchange(IConfiguration configuration)
@@ -34,59 +36,45 @@ public class UniswapExchange : IDexExchange
 
     public async Task StartClientAsync()
     {
-        string uniSwapFactoryAddressV2 = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
-        string uniSwapFactoryAddressV3 = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
-        string uniAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984";
-        string wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-        int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 }; 
-        
+        string uniAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"; // to dict
+        string wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // to dict
+
+        int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
+
         var pairContractAddressV2 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunction>()
             .QueryAsync<string>(uniSwapFactoryAddressV2,
                 new GetPairFunction() { TokenA = wethAddress, TokenB = uniAddress });
 
 
         string pairContractAddressV3 = "";
-      //for fee..
-             pairContractAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
-                .QueryAsync<string>(uniSwapFactoryAddressV3,
-                    new GetPairFunctionV3() { TokenA = wethAddress, TokenB = uniAddress ,FeeAmount =3000 });
-        
-        var filter = Event<PairSyncEventDTO>.GetEventABI()
-            .CreateFilterInput(new[] {  pairContractAddressV3});
+        //for fee..
+        pairContractAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
+            .QueryAsync<string>(uniSwapFactoryAddressV3,
+                new GetPairFunctionV3() { TokenA = wethAddress, TokenB = uniAddress, FeeAmount = 3000 });
 
-        var subscription = new EthLogsObservableSubscription(_webSocketClient);
-        subscription.GetSubscriptionDataResponsesAsObservable().Subscribe(log =>
-        {
-            try
-            {
-                EventLog<PairSyncEventDTO> decoded = Event<PairSyncEventDTO>.DecodeEvent(log);
-                if (decoded != null)
-                {
-                    decimal reserve0 = Web3.Convert.FromWei(decoded.Event.Reserve0);
-                    decimal reserve1 = Web3.Convert.FromWei(decoded.Event.Reserve1);
-                    Console.WriteLine($@"Price={reserve0 / reserve1}");
-                }
-                else Console.WriteLine(@"Found not standard transfer log");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(@"Log Address: " + log.Address + @" is not a standard transfer log:", ex.Message);
-            }
-        });
-
-        await _webSocketClient.StartAsync();
-        subscription.GetSubscribeResponseAsObservable().Subscribe(id => Console.WriteLine($"Subscribed with id: {id}"));
-        await subscription.SubscribeAsync(filter);
-
-        while (true)
-        {
-            var handler = new EthBlockNumberObservableHandler(_webSocketClient);
-            handler.GetResponseAsObservable().Subscribe(x => Console.WriteLine(x.Value));
-            await handler.SendRequestAsync();
-            await Task.Delay(500);
-        }
+        await GetPriceFromPoolV3(pairContractAddressV3);
     }
-    
+
+    private async Task GetPriceFromPoolV3(string poolContractAddress)
+    {
+        var slotValue = await _web3Ws.Eth.GetContractQueryHandler<SlotFunction>()
+            .QueryAsync<Slot0OutputDTO>(poolContractAddress, new SlotFunction());
+        BigInteger numerator = BigInteger.Pow(slotValue.SqrtPriceX96, 2);
+        BigInteger denominator = BigInteger.Pow(2, 192);
+
+        double price = Math.Pow(1.0001, slotValue.Tick);
+        double reversePrice = 1 / price;
+        double adjustedPrice = price * Math.Pow(10, 18 - 18);
+
+        Console.WriteLine($"Exact Price (Uniswap V3): {price}");
+
+
+        double poolFee = 0.003; // 0.25% для Uniswap (можна замінити на змінну для V3)
+        double priceWithPoolFee = price * (1 + poolFee);
+        double priceWithAdjuctedPoolFee = reversePrice * (1 + poolFee);
+        Console.WriteLine($"Price with pool fee: {priceWithPoolFee}");
+    }
+
     public Task TestConnection()
     {
         throw new NotImplementedException();
@@ -100,60 +88,5 @@ public class UniswapExchange : IDexExchange
     public Task SubscribeAndRunAsync()
     {
         throw new NotImplementedException();
-    }
-
-    [Event("Sync")]
-    class PairSyncEventDTO : IEventDTO
-    {
-        [Parameter("uint112", "reserve0")] public virtual BigInteger Reserve0 { get; set; }
-
-        [Parameter("uint112", "reserve1", 2)] public virtual BigInteger Reserve1 { get; set; }
-    }
-
-
-    public partial class GetPairFunction : GetPairFunctionBase
-    {
-    }
-
-    
-    [Function("getPool", "address")]
-    public class GetPairFunctionV3 : FunctionMessage
-    {
-        [Parameter("address", "tokenA", 1)] public  string TokenA { get; set; }
-        [Parameter("address", "tokenB", 2)] public  string TokenB { get; set; }
-        [Parameter("uint24", "fee", 3)] public  int FeeAmount { get; set; }
-    }
-
-    [Function("getPair", "address")]
-    public class GetPairFunctionBase : FunctionMessage
-    {
-        [Parameter("address", "tokenA", 1)] public virtual string TokenA { get; set; }
-        [Parameter("address", "tokenB", 2)] public virtual string TokenB { get; set; }
-    }
-
-
-    public partial class SwapEventDTO : SwapEventDTOBase
-    {
-    }
-
-    [Event("Swap")]
-    public class SwapEventDTOBase : IEventDTO
-    {
-        [Parameter("address", "sender", 1, true)]
-        public virtual string Sender { get; set; }
-
-        [Parameter("uint256", "amount0In", 2, false)]
-        public virtual BigInteger Amount0In { get; set; }
-
-        [Parameter("uint256", "amount1In", 3, false)]
-        public virtual BigInteger Amount1In { get; set; }
-
-        [Parameter("uint256", "amount0Out", 4, false)]
-        public virtual BigInteger Amount0Out { get; set; }
-
-        [Parameter("uint256", "amount1Out", 5, false)]
-        public virtual BigInteger Amount1Out { get; set; }
-
-        [Parameter("address", "to", 6, true)] public virtual string To { get; set; }
     }
 }
