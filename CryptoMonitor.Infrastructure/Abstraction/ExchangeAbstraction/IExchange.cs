@@ -5,7 +5,5 @@ public interface IExchange
     string Name { get; init; }
 
     Task StartClientAsync();
-    Task TestConnection();
-    Task GetLastPriceAsync(string baseCurrency,string quoteCurrency);
-    
+    Task<decimal?> GetLastPriceAsync(string baseCurrency,string quoteCurrency);
 }

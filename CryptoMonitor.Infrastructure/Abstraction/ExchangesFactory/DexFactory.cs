@@ -10,14 +10,14 @@ public enum DexEnum
     Raydium = 2,
 }
 
-public class DexFactory : IAbstractExchangeFactory<IExchange, DexEnum>
+public class DexFactory : IAbstractDexExchangeFactory<DexEnum>
 {
     private readonly Dictionary<DexEnum, IDexExchange> _exchanges;
     public DexFactory(IEnumerable<IDexExchange> exchanges)
     {
         _exchanges = exchanges.ToDictionary(e => GetExchangeType<DexEnum>(e));
     }
-    public IExchange CreateExchange(DexEnum exchangeType)
+    public IDexExchange CreateDexExchange(DexEnum exchangeType)
     {
         if (_exchanges.TryGetValue(exchangeType, out var exchange))
         {
@@ -36,4 +36,5 @@ public class DexFactory : IAbstractExchangeFactory<IExchange, DexEnum>
         }
         throw new ArgumentException($"Exchange {exchange.GetType().Name} is missing ExchangeTypeAttribute or has an invalid type.");
     }
+    
 }

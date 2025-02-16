@@ -11,7 +11,7 @@ public enum CexEnum
     KuCoin = 2,
 }
 
-public class CexFactory : IAbstractExchangeFactory<IExchange, CexEnum>
+public class CexFactory : IAbstractCexExchangeFactory<CexEnum>
 {
     private readonly Dictionary<CexEnum, ICexExchange> _exchanges;
     
@@ -21,7 +21,7 @@ public class CexFactory : IAbstractExchangeFactory<IExchange, CexEnum>
     }
 
     
-    public IExchange CreateExchange(CexEnum exchangeType)
+    public ICexExchange CreateCexExchange(CexEnum exchangeType)
     {
         if (_exchanges.TryGetValue(exchangeType, out var exchange))
         {
@@ -41,6 +41,7 @@ public class CexFactory : IAbstractExchangeFactory<IExchange, CexEnum>
         }
         throw new ArgumentException($"Exchange {exchange.GetType().Name} is missing ExchangeTypeAttribute or has an invalid type.");
     }
+
 
    
 }

@@ -27,7 +27,7 @@ public class KuCoinExchange : ICexExchange
         throw new NotImplementedException();
     }
 
-    public async Task GetLastPriceAsync(string baseCurrency,string quoteCurrency) //can be abstract realisation 
+    public async Task<decimal?> GetLastPriceAsync(string baseCurrency,string quoteCurrency) //can be abstract realisation 
     {
         var exchangeSymbolsInfo = await _restClient.SpotApi.ExchangeData.GetSymbolsAsync(); // need to one request when client start, and caching data
         var availableCurrency = exchangeSymbolsInfo?.Data;
@@ -43,6 +43,7 @@ public class KuCoinExchange : ICexExchange
             if (tickerResult.Success)
             {
                 Console.WriteLine($"Price {pairCurrency.Name}: {tickerResult.Data.LastPrice}");
+                return tickerResult.Data.LastPrice;
             }
             else
             {
@@ -50,8 +51,14 @@ public class KuCoinExchange : ICexExchange
             }
         }
 
+        throw new Exception();
     }
-    
+
+    public Task CloseWebSocketAsync()
+    {
+        throw new NotImplementedException();
+    }
+
 
     public KuCoinExchange()
     {

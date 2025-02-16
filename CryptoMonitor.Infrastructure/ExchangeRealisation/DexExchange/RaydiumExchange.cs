@@ -23,7 +23,7 @@ public class RaydiumExchange : IDexExchange
         throw new NotImplementedException();
     }
 
-    public Task GetLastPriceAsync(string baseCurrency, string quoteCurrency)
+    public Task<decimal?> GetLastPriceAsync(string baseCurrency, string quoteCurrency)
     {
         throw new NotImplementedException();
     }

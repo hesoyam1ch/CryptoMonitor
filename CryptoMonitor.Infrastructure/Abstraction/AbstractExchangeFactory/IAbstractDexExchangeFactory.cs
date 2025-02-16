@@ -2,7 +2,8 @@
 
 namespace CryptoMonitor.Infrastructure.Abstraction.AbstractExchangeFactory;
 
-public interface IAbstractExchangeFactory<T, TEnum> where T : IExchange
+public interface IAbstractDexExchangeFactory<DexEnum>  
 {
-    T CreateExchange(TEnum exchangeType);
+    IDexExchange CreateDexExchange(DexEnum exchangeType);
+
 }
