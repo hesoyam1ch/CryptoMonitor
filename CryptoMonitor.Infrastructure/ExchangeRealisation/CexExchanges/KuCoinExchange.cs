@@ -1,39 +1,36 @@
-﻿using Binance.Net.Clients;
-using CryptoExchange.Net.Authentication;
+﻿using CryptoExchange.Net.Authentication;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
+using Kucoin.Net.Clients;
+using Kucoin.Net.Objects;
 
 namespace CryptoMonitor.Infrastructure.Models.CexExchangesModels;
 
-[ExchangeType(CexEnum.Binance)]
-public class BinanceExchange : ICexExchange
+[ExchangeType(CexEnum.KuCoin)]
+public class KuCoinExchange : ICexExchange
 {
+    private KucoinRestClient _restClient;
     public string Name { get; init; }
-    private BinanceRestClient _restClient;
-
-    public BinanceExchange()
+    public async  Task StartClientAsync()
     {
-        Name = "binance";
-        _restClient = new BinanceRestClient();
+       var result =  await _restClient.SpotApi.ExchangeData.GetMarketsAsync();
+       Console.WriteLine($"{result.RequestBody}");
     }
 
-    public BinanceExchange SetApiCreds(ApiCredentials apiCredentials)
+    public KuCoinExchange SetApiCreaditials(KucoinApiCredentials apiCredentials)
     {
         _restClient.SetApiCredentials(apiCredentials);
         return this;
     }
-
-    public async Task StartClientAsync()
+    public Task TestConnection()
     {
-        var result = await _restClient.SpotApi.ExchangeData.PingAsync();
-
-        Console.WriteLine($"{result.RequestBody}");
+        throw new NotImplementedException();
     }
 
-    public async Task GetLastPriceAsync(string baseCurrency, string quoteCurrency)
+    public async Task GetLastPriceAsync(string baseCurrency,string quoteCurrency) //can be abstract realisation 
     {
-        var exchangeSymbolsInfo = await _restClient.SpotApi.ExchangeData.GetExchangeInfoAsync();
-        var availableCurrency = exchangeSymbolsInfo?.Data?.Symbols;
+        var exchangeSymbolsInfo = await _restClient.SpotApi.ExchangeData.GetSymbolsAsync(); // need to one request when client start, and caching data
+        var availableCurrency = exchangeSymbolsInfo?.Data;
         var pairCurrency = availableCurrency
             .First(s => s.BaseAsset.Equals(baseCurrency, StringComparison.OrdinalIgnoreCase) && 
                         s.QuoteAsset.Equals(quoteCurrency,StringComparison.OrdinalIgnoreCase));
@@ -52,15 +49,14 @@ public class BinanceExchange : ICexExchange
                 Console.WriteLine($"Can't get price for: {pairCurrency.Name}");
             }
         }
-    }
 
-    public Task SubscribeAndRunAsync()
-    {
-        throw new NotImplementedException();
     }
+    
 
-    public Task TestConnection()
+    public KuCoinExchange()
     {
-        throw new NotImplementedException();
+        _restClient = new KucoinRestClient();
+        Name = "kucoin";
     }
+    
 }

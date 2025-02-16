@@ -1,30 +1,37 @@
 ﻿using System.Numerics;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
+using CryptoMonitor.Infrastructure.ExchangeRealisation.Code;
 using CryptoMonitor.Infrastructure.Models.DexExchangeModels.EthereumContractFunctions;
 using Microsoft.Extensions.Configuration;
-using Nethereum.JsonRpc.WebSocketStreamingClient;
+using Nethereum.JsonRpc.WebSocketClient;
 using Nethereum.Web3;
-
 
 namespace CryptoMonitor.Infrastructure.Models.DexExchangeModels;
 
 [ExchangeType(DexEnum.Uniswap)]
 public class UniswapExchange : IDexExchange
 {
+    private static readonly Dictionary<string, string> TokensSmartContract = new()
+    {
+        { "ETH", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
+        { "USDC", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+        { "SOL", "0xD31a59c85aE9D8edEFeC411D448f90841571b89c" },
+        { "WBTC", "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599" }
+    };
+
     private const string uniSwapFactoryAddressV2 = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
     private const string uniSwapFactoryAddressV3 = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
 
-    public Dictionary<string, string> _tokenContracts;
     private string _webSocketUrl;
-    private StreamingWebSocketClient _webSocketClient;
+    private WebSocketClient _webSocketClient;
     private Web3 _web3Ws;
     public string Name { get; init; }
 
     public UniswapExchange(IConfiguration configuration)
     {
         _webSocketUrl = configuration.GetConnectionString("EthereumWssRpc");
-        _webSocketClient = new StreamingWebSocketClient(_webSocketUrl);
+        _webSocketClient = new WebSocketClient(_webSocketUrl);
         _web3Ws = new Web3(_webSocketUrl);
         Name = "Uniswap";
     }
@@ -34,8 +41,8 @@ public class UniswapExchange : IDexExchange
         string wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // to dict
         // string uniAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"; // to dict
         string usdcAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-        var baseTokenDecimals = await GetDecimalsForTokenAsync(wethAddress);
-        var quoteTokenDecimals = await GetDecimalsForTokenAsync(usdcAddress);
+        var baseTokenDecimals = await Utils.GetDecimalsForTokenAsync(wethAddress, _web3Ws);
+        var quoteTokenDecimals = await Utils.GetDecimalsForTokenAsync(usdcAddress, _web3Ws);
         int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
 
         var liqudityPoolAddressV2 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunction>()
@@ -48,7 +55,8 @@ public class UniswapExchange : IDexExchange
         {
             liqudityPoolAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
                 .QueryAsync<string>(uniSwapFactoryAddressV3,
-                    new GetPairFunctionV3() { TokenA = wethAddress, TokenB = usdcAddress, FeeAmount = 3000 });
+                    new GetPairFunctionV3()
+                        { TokenA = wethAddress, TokenB = usdcAddress, FeeAmount = feeAvaibleAmount[i] });
             if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) ||
                 liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
             {
@@ -68,7 +76,7 @@ public class UniswapExchange : IDexExchange
             .QueryAsync<Slot0OutputDTO>(poolContractAddress, new SlotFunction());
 
         (double priceToken1, double priceToken2) =
-            CalculatePrices(slotResult.Tick, baseTokenDecimals, quoteTokenDecimals);
+            Utils.CalculatePrices(slotResult.Tick, baseTokenDecimals, quoteTokenDecimals);
         return (priceToken1, priceToken2);
     }
 
@@ -137,70 +145,7 @@ public class UniswapExchange : IDexExchange
         var reserves = await getReservesFunction.CallDeserializingToObjectAsync<ReservesDTO>();
 
         (double priceToken1, double priceToken2) =
-            CalculatePrices(reserves.Reserve0, reserves.Reserve1, baseTokenDecimals, quoteTokenDecimals);
-        
-        return (priceToken1, priceToken2);
-    }
-
-
-    private async Task<int> GetDecimalsForTokenAsync(string tokenAddress)
-    {
-        var tokenContract = _web3Ws.Eth.GetContract(@"
-[
-  {
-    ""constant"": true,
-    ""inputs"": [],
-    ""name"": ""decimals"",
-    ""outputs"": [
-      {
-        ""name"": """",
-        ""type"": ""uint256""
-      }
-    ],
-    ""payable"": false,
-    ""stateMutability"": ""view"",
-    ""type"": ""function""
-  }
-]
-", tokenAddress);
-        var decimalsFunction = tokenContract.GetFunction("decimals");
-
-        var decimals = await decimalsFunction.CallAsync<int>();
-        return decimals;
-    }
-
-    private (double priceToken1, double priceToken2) CalculatePrices(int tick, int baseTokenDecimals,
-        int quoteTokenDecimals)
-    {
-        double priceAsDouble = Math.Pow(1.0001, tick);
-
-        BigInteger priceBigInt = new BigInteger(priceAsDouble * Math.Pow(10, 18));
-        BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
-        BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
-        BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
-        BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
-
-        double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
-        double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
-
-        return (priceToken1, priceToken2);
-    }
-
-    private (double price, double reversePrice) CalculatePrices(BigInteger reserve0, BigInteger reserve1,
-        int baseTokenDecimals, int quoteTokenDecimals)
-    {
-        BigInteger reserve0Wei = reserve0;
-        BigInteger reserve1Wei = reserve1;
-
-        BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
-        BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
-
-        BigInteger priceBigInt = (reserve1Wei * BigInteger.Pow(10, 18)) / reserve0Wei;
-        BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
-        BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
-
-        double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
-        double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
+            Utils.CalculatePrices(reserves.Reserve0, reserves.Reserve1, baseTokenDecimals, quoteTokenDecimals);
 
         return (priceToken1, priceToken2);
     }
@@ -215,9 +160,5 @@ public class UniswapExchange : IDexExchange
     {
         throw new NotImplementedException();
     }
-
-    public Task SubscribeAndRunAsync()
-    {
-        throw new NotImplementedException();
-    }
+    
 }

@@ -28,8 +28,5 @@ public class RaydiumExchange : IDexExchange
         throw new NotImplementedException();
     }
 
-    public Task SubscribeAndRunAsync()
-    {
-        throw new NotImplementedException();
-    }
+  
 }
