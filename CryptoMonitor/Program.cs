@@ -42,9 +42,11 @@ var kikResu = await kuCoinExchange.GetLastPriceAsync("ETH","BTC");
 var priceResult = await binanceExchange.GetLastPriceAsync("ETH" ,"BTC");
 await binanceExchange.UnsubscribeWebSocketConnectionsAsync();
 await kuCoinExchange.UnsubscribeWebSocketConnectionsAsync();
-var sd = await uniswapExchange.GetLastPriceAsync("ETH","USDT");
+var btcUNI = await uniswapExchange.GetLastPriceAsync("BTC","ETH");
+var EthUNI = await uniswapExchange.GetLastPriceAsync("ETH","USDT");
+var sold = await uniswapExchange.GetLastPriceAsync("ETH","SOL");
 
-Console.WriteLine("sdsd");
+
 
 app.Run();
 

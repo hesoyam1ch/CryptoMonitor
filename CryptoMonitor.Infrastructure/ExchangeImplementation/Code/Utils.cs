@@ -34,20 +34,58 @@ public static class Utils
     public static (double priceToken1, double priceToken2) CalculatePrices(int tick, int baseTokenDecimals,
       int quoteTokenDecimals)
     {
-      double priceAsDouble = Math.Pow(1.0001, tick);
+      
+      //
+      // decimal basePrice = PowDecimal(1.0001m, tick);
+      //
+      // decimal correctionFactor = PowDecimal(10m, baseTokenDecimals - quoteTokenDecimals);
+      //
+      // decimal price = basePrice * correctionFactor;
+      // decimal reversePrice = price != 0 ? 1 / price : 0;
+      //
+      // return ((double)price, (double)reversePrice);
+      double basePrice = Math.Pow(1.0001, tick);
+      double adjustmentFactor = Math.Pow(10, baseTokenDecimals - quoteTokenDecimals);
+      double adjustedPrice = basePrice * adjustmentFactor;
+      double priceDecimal = adjustedPrice;
+      double reversePriceDecimal = priceDecimal != 0 ? 1 / priceDecimal : 0;
+      
+      return (priceDecimal, reversePriceDecimal);
+      // double priceAsDouble = Math.Pow(1.0001, tick);
+      //
+      // BigInteger priceBigInt = new BigInteger(priceAsDouble * Math.Pow(10, 18));
+      // BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
+      // BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
+      // BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
+      // BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
+      //
+      // double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
+      // double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
 
-      BigInteger priceBigInt = new BigInteger(priceAsDouble * Math.Pow(10, 18));
-      BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
-      BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
-      BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
-      BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
-
-      double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
-      double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
-
-      return (priceToken1, priceToken2);
+      //  return (priceToken1, priceToken2);
     }
 
+    public static decimal PowDecimal(decimal x, int y)
+    {
+      if (y == 0)
+        return 1m;
+    
+      bool isNegative = y < 0;
+      int exponent = Math.Abs(y);
+    
+      decimal result = 1m;
+      for (int i = 0; i < exponent; i++)
+      {
+        result *= x;
+      }
+    
+      if (isNegative)
+      {
+        result = 1 / result;
+      }
+    
+      return result;
+    }
     public static (double price, double reversePrice) CalculatePrices(BigInteger reserve0, BigInteger reserve1,
       int baseTokenDecimals, int quoteTokenDecimals)
     {

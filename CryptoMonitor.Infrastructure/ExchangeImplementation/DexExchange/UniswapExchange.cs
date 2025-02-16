@@ -152,7 +152,8 @@ public class UniswapExchange : IDexExchange
 
     public async Task<decimal?> GetLastPriceAsync(string baseCurrency, string quoteCurrency)
     {
-        int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
+         int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
+        //int[] feeAvaibleAmount = new[] { 3000};
         string baseCurrencyAddress = Utils.GetTokenContractAddress(TokensSmartContract, baseCurrency);
         string quoteCurrencyAddress = Utils.GetTokenContractAddress(TokensSmartContract, quoteCurrency);
 
@@ -167,13 +168,26 @@ public class UniswapExchange : IDexExchange
 
         for (int i = 0; i < feeAvaibleAmount.Length; i++)
         {
-            liqudityPoolAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
-                .QueryAsync<string>(uniSwapFactoryAddressV3,
-                    new GetPairFunctionV3()
-                    {
-                        TokenA = baseCurrencyAddress, TokenB = quoteCurrencyAddress, FeeAmount = feeAvaibleAmount[i]
-                    });
-            
+            if (quoteCurrencyAddress == "0xD31a59c85aE9D8edEFeC411D448f90841571b89c")
+            {
+                liqudityPoolAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
+                    .QueryAsync<string>(uniSwapFactoryAddressV3,
+                        new GetPairFunctionV3()
+                        {
+                            TokenA = baseCurrencyAddress, TokenB = quoteCurrencyAddress, FeeAmount = 3000
+                        });
+
+            }
+            else
+            {
+                liqudityPoolAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
+                    .QueryAsync<string>(uniSwapFactoryAddressV3,
+                        new GetPairFunctionV3()
+                        {
+                            TokenA = baseCurrencyAddress, TokenB = quoteCurrencyAddress, FeeAmount = feeAvaibleAmount[i]
+                        });
+            }
+           
             if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
             {
                 break;
