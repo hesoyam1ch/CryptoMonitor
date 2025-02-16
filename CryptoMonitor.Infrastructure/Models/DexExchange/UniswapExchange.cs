@@ -34,7 +34,8 @@ public class UniswapExchange : IDexExchange
         string wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // to dict
         // string uniAddress = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"; // to dict
         string usdcAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-        var usdcDecimalAmount = await GetDecimalsForTokenAsync(usdcAddress);
+        var baseTokenDecimals = await GetDecimalsForTokenAsync(wethAddress);
+        var quoteTokenDecimals = await GetDecimalsForTokenAsync(usdcAddress);
         int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
 
         var liqudityPoolAddressV2 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunction>()
@@ -56,46 +57,23 @@ public class UniswapExchange : IDexExchange
         }
 
 
-        await GetPriceFromPoolV3Async(liqudityPoolAddressV3);
-        await GetPriceFromPoolV2Async(liqudityPoolAddressV2);
+        await GetPriceFromPoolV3Async(liqudityPoolAddressV3, baseTokenDecimals, quoteTokenDecimals);
+        await GetPriceFromPoolV2Async(liqudityPoolAddressV2, baseTokenDecimals, quoteTokenDecimals);
     }
 
-    private async Task<(double inBaseToken, double inQuoteToken)> GetPriceFromPoolV3Async(string poolContractAddress)
+    private async Task<(double inBaseToken, double inQuoteToken)> GetPriceFromPoolV3Async(string poolContractAddress,
+        int baseTokenDecimals, int quoteTokenDecimals)
     {
         var slotResult = await _web3Ws.Eth.GetContractQueryHandler<SlotFunction>()
             .QueryAsync<Slot0OutputDTO>(poolContractAddress, new SlotFunction());
-        // BigInteger numerator = BigInteger.Pow(slotValue.SqrtPriceX96, 2);
-        // BigInteger denominator = BigInteger.Pow(2, 192);
-        //
-        // double price = Math.Pow(1.0001, slotResult.Tick);
-        // double reversePrice = 1 / price;
-        // double adjustedPrice = price * Math.Pow(10, 18 - 12);
-        // Console.WriteLine($"Exact Price (Uniswap V3): {price}");
-        //
-        
-        double priceAsDouble = Math.Pow(1.0001, slotResult.Tick);
-        BigInteger priceBigInt = new BigInteger(priceAsDouble * Math.Pow(10, 18));  // помножити на 10^18 для точності
-        BigInteger priceToken1Wei= priceBigInt / BigInteger.Pow(10, 18);  // Привести до звичайної ціни
-        BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt); // Для реверсної ціни з відповідним масштабом
-        //
-        BigInteger scaleToken1 = BigInteger.Pow(10, 18);
-        BigInteger scaleToken2 = BigInteger.Pow(10, 6);
-        
-        double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
-        double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
-        // double adjustedPriceToken1 = price / Math.Pow(10, 18);  
-        // double adjustedPriceToken2 = price / Math.Pow(10, 12);  
-        // double reversePrice = 1 / price;
-        // double adjustedReversePriceToken1 = reversePrice * Math.Pow(10, 18); 
-        // double poolFee = 0.003; // 0.25% для Uniswap (можна замінити на змінну для V3)
-        // double priceWithPoolFee = price * (1 + poolFee);
-        // double priceWithAdjuctedPoolFee = reversePrice * (1 + poolFee);
-        // Console.WriteLine($"Price with pool fee: {adjustedPriceToken1}");
 
-        return (443, 2.3);
+        (double priceToken1, double priceToken2) =
+            CalculatePrices(slotResult.Tick, baseTokenDecimals, quoteTokenDecimals);
+        return (priceToken1, priceToken2);
     }
 
-    private async Task<(double inBaseToken, double inQuoteToken)> GetPriceFromPoolV2Async(string poolContractAddress)
+    private async Task<(double inBaseToken, double inQuoteToken)> GetPriceFromPoolV2Async(string poolContractAddress,
+        int baseTokenDecimals, int quoteTokenDecimals)
     {
         var contract = _web3Ws.Eth.GetContract(@"[
   {
@@ -158,10 +136,10 @@ public class UniswapExchange : IDexExchange
         var getReservesFunction = contract.GetFunction("getReserves");
         var reserves = await getReservesFunction.CallDeserializingToObjectAsync<ReservesDTO>();
 
-        double price = (double)reserves.Reserve1 / (double)reserves.Reserve0;
-        double reversePrice = 1 / price;
-
-        return (price, reversePrice);
+        (double priceToken1, double priceToken2) =
+            CalculatePrices(reserves.Reserve0, reserves.Reserve1, baseTokenDecimals, quoteTokenDecimals);
+        
+        return (priceToken1, priceToken2);
     }
 
 
@@ -190,6 +168,43 @@ public class UniswapExchange : IDexExchange
         var decimals = await decimalsFunction.CallAsync<int>();
         return decimals;
     }
+
+    private (double priceToken1, double priceToken2) CalculatePrices(int tick, int baseTokenDecimals,
+        int quoteTokenDecimals)
+    {
+        double priceAsDouble = Math.Pow(1.0001, tick);
+
+        BigInteger priceBigInt = new BigInteger(priceAsDouble * Math.Pow(10, 18));
+        BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
+        BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
+        BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
+        BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
+
+        double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
+        double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
+
+        return (priceToken1, priceToken2);
+    }
+
+    private (double price, double reversePrice) CalculatePrices(BigInteger reserve0, BigInteger reserve1,
+        int baseTokenDecimals, int quoteTokenDecimals)
+    {
+        BigInteger reserve0Wei = reserve0;
+        BigInteger reserve1Wei = reserve1;
+
+        BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
+        BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
+
+        BigInteger priceBigInt = (reserve1Wei * BigInteger.Pow(10, 18)) / reserve0Wei;
+        BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
+        BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
+
+        double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
+        double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
+
+        return (priceToken1, priceToken2);
+    }
+
 
     public Task TestConnection()
     {
