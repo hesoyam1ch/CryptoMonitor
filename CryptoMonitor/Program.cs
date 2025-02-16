@@ -37,10 +37,12 @@ var kuCoinExchange = cexFactory.CreateCexExchange(CexEnum.KuCoin);
 var raydiumExchange = dexFactory.CreateDexExchange(DexEnum.Raydium);
 var uniswapExchange = dexFactory.CreateDexExchange(DexEnum.Uniswap);
 
-await binanceExchange.StartClientAsync();
-await kuCoinExchange.GetLastPriceAsync("ETH","BTC");
+await binanceExchange.StartClientAsync(); 
+var kikResu = await kuCoinExchange.GetLastPriceAsync("ETH","BTC");
 var priceResult = await binanceExchange.GetLastPriceAsync("ETH" ,"BTC");
-await binanceExchange.CloseWebSocketAsync();
+await binanceExchange.UnsubscribeWebSocketConnectionsAsync();
+await kuCoinExchange.UnsubscribeWebSocketConnectionsAsync();
+
 
 await uniswapExchange.StartClientAsync();
 
