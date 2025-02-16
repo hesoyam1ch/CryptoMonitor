@@ -18,10 +18,6 @@ public class RaydiumExchange : IDexExchange
         throw new NotImplementedException();
     }
 
-    public Task TestConnection()
-    {
-        throw new NotImplementedException();
-    }
 
     public Task<decimal?> GetLastPriceAsync(string baseCurrency, string quoteCurrency)
     {

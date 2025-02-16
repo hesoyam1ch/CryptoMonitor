@@ -64,4 +64,16 @@ public static class Utils
 
       return (priceToken1, priceToken2);
     }
+    
+    public static string GetTokenContractAddress(Dictionary<string,string> TokensSmartContract,string tokenSymbol)
+    {
+      tokenSymbol = tokenSymbol.ToUpper();
+      if (TokensSmartContract.TryGetValue(tokenSymbol, out string address))
+      {
+        return address;
+      }
+    
+      throw new Exception($"Token {tokenSymbol} not found in the smart contracts dictionary.");
+    }
+
 }

@@ -15,9 +15,9 @@ public class UniswapExchange : IDexExchange
     private static readonly Dictionary<string, string> TokensSmartContract = new()
     {
         { "ETH", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
-        { "USDC", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+        { "USDT", "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
         { "SOL", "0xD31a59c85aE9D8edEFeC411D448f90841571b89c" },
-        { "WBTC", "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599" }
+        { "BTC", "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599" }
     };
 
     private const string uniSwapFactoryAddressV2 = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
@@ -144,21 +144,54 @@ public class UniswapExchange : IDexExchange
         var getReservesFunction = contract.GetFunction("getReserves");
         var reserves = await getReservesFunction.CallDeserializingToObjectAsync<ReservesDTO>();
 
-        (double priceToken1, double priceToken2) =
-            Utils.CalculatePrices(reserves.Reserve0, reserves.Reserve1, baseTokenDecimals, quoteTokenDecimals);
+        (double priceToken1, double priceToken2) = Utils.CalculatePrices(reserves.Reserve0, reserves.Reserve1,
+            baseTokenDecimals, quoteTokenDecimals);
 
         return (priceToken1, priceToken2);
     }
 
-
-    public Task TestConnection()
+    public async Task<decimal?> GetLastPriceAsync(string baseCurrency, string quoteCurrency)
     {
-        throw new NotImplementedException();
-    }
+        int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
+        string baseCurrencyAddress = Utils.GetTokenContractAddress(TokensSmartContract, baseCurrency);
+        string quoteCurrencyAddress = Utils.GetTokenContractAddress(TokensSmartContract, quoteCurrency);
 
-    public Task<decimal?> GetLastPriceAsync(string baseCurrency, string quoteCurrency)
-    {
-        throw new NotImplementedException();
+        var baseTokenDecimals = await Utils.GetDecimalsForTokenAsync(baseCurrencyAddress, _web3Ws);
+        var quoteTokenDecimals = await Utils.GetDecimalsForTokenAsync(quoteCurrencyAddress, _web3Ws);
+
+        var liqudityPoolAddressV2 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunction>()
+            .QueryAsync<string>(uniSwapFactoryAddressV2,
+                new GetPairFunction() { TokenA = baseCurrencyAddress, TokenB = quoteCurrencyAddress });
+
+        string liqudityPoolAddressV3 = "";
+
+        for (int i = 0; i < feeAvaibleAmount.Length; i++)
+        {
+            liqudityPoolAddressV3 = await _web3Ws.Eth.GetContractQueryHandler<GetPairFunctionV3>()
+                .QueryAsync<string>(uniSwapFactoryAddressV3,
+                    new GetPairFunctionV3()
+                    {
+                        TokenA = baseCurrencyAddress, TokenB = quoteCurrencyAddress, FeeAmount = feeAvaibleAmount[i]
+                    });
+            
+            if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
+            {
+                break;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
+        {
+            var resultV3 = await GetPriceFromPoolV3Async(liqudityPoolAddressV3, baseTokenDecimals, quoteTokenDecimals);
+            return (decimal)resultV3.inQuoteToken;
+        }
+
+        if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV2 != "0xA000000000000000000000000000000000000000")
+        {
+            var resultV2 = await GetPriceFromPoolV2Async(liqudityPoolAddressV2, baseTokenDecimals, quoteTokenDecimals);
+            return (decimal)resultV2.inQuoteToken;
+        }
+
+        throw new Exception();
     }
-    
 }

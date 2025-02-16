@@ -80,7 +80,7 @@ public class BinanceExchange : ICexExchange
             _currentSubscription = subscribeResult.Data;
             _currentPair = pair;
 
-            var completedTask = await Task.WhenAny(_priceUpdated.Task, Task.Delay(3000));
+            var completedTask = await Task.WhenAny(_priceUpdated.Task, Task.Delay(5000));
             if (completedTask == _priceUpdated.Task)
             {
                 return _priceUpdated.Task.Result;
