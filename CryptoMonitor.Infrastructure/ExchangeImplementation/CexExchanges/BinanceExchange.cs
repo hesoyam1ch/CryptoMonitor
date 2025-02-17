@@ -4,7 +4,7 @@ using CryptoExchange.Net.Objects.Sockets;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
 
-namespace CryptoMonitor.Infrastructure.Models.CexExchangesModels;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.CexExchanges;
 
 [ExchangeType(CexEnum.Binance)]
 public class BinanceExchange : ICexExchange

@@ -1,6 +1,5 @@
 ﻿using CryptoMonitor.Infrastructure.Abstraction.AbstractExchangeFactory;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
-using CryptoMonitor.Infrastructure.Models.CexExchangesModels;
 
 namespace CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
 

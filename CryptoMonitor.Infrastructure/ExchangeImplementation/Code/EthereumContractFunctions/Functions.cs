@@ -2,7 +2,7 @@
 using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.Contracts;
 
-namespace CryptoMonitor.Infrastructure.Models.DexExchangeModels.EthereumContractFunctions;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.Code.EthereumContractFunctions;
 
 #region PoolV2Function
 

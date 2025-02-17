@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Nethereum.Web3;
 
-namespace CryptoMonitor.Infrastructure.ExchangeRealisation.Code;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.Code;
 
 public static class Utils
 {
@@ -30,88 +30,44 @@ public static class Utils
         var decimals = await decimalsFunction.CallAsync<int>();
         return decimals;
     }
-    
+
     public static (double priceToken1, double priceToken2) CalculatePrices(int tick, int baseTokenDecimals,
-      int quoteTokenDecimals)
+        int quoteTokenDecimals)
     {
-      
-      //
-      // decimal basePrice = PowDecimal(1.0001m, tick);
-      //
-      // decimal correctionFactor = PowDecimal(10m, baseTokenDecimals - quoteTokenDecimals);
-      //
-      // decimal price = basePrice * correctionFactor;
-      // decimal reversePrice = price != 0 ? 1 / price : 0;
-      //
-      // return ((double)price, (double)reversePrice);
-      double basePrice = Math.Pow(1.0001, tick);
-      double adjustmentFactor = Math.Pow(10, baseTokenDecimals - quoteTokenDecimals);
-      double adjustedPrice = basePrice * adjustmentFactor;
-      double priceDecimal = adjustedPrice;
-      double reversePriceDecimal = priceDecimal != 0 ? 1 / priceDecimal : 0;
-      
-      return (priceDecimal, reversePriceDecimal);
-      // double priceAsDouble = Math.Pow(1.0001, tick);
-      //
-      // BigInteger priceBigInt = new BigInteger(priceAsDouble * Math.Pow(10, 18));
-      // BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
-      // BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
-      // BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
-      // BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
-      //
-      // double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
-      // double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
+        double basePrice = Math.Pow(1.0001, tick);
+        double adjustmentFactor = Math.Pow(10, baseTokenDecimals - quoteTokenDecimals);
+        double adjustedPrice = basePrice * adjustmentFactor;
+        double priceDecimal = adjustedPrice;
+        double reversePriceDecimal = priceDecimal != 0 ? 1 / priceDecimal : 0;
 
-      //  return (priceToken1, priceToken2);
+        return (priceDecimal, reversePriceDecimal);
     }
 
-    public static decimal PowDecimal(decimal x, int y)
-    {
-      if (y == 0)
-        return 1m;
-    
-      bool isNegative = y < 0;
-      int exponent = Math.Abs(y);
-    
-      decimal result = 1m;
-      for (int i = 0; i < exponent; i++)
-      {
-        result *= x;
-      }
-    
-      if (isNegative)
-      {
-        result = 1 / result;
-      }
-    
-      return result;
-    }
+
     public static (double price, double reversePrice) CalculatePrices(BigInteger reserve0, BigInteger reserve1,
-      int baseTokenDecimals, int quoteTokenDecimals)
+        int baseTokenDecimals, int quoteTokenDecimals)
     {
-        
-      BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
-      BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
+        BigInteger scaleToken1 = BigInteger.Pow(10, baseTokenDecimals - quoteTokenDecimals);
+        BigInteger scaleToken2 = BigInteger.Pow(10, quoteTokenDecimals);
 
-      BigInteger priceBigInt = (reserve1 * BigInteger.Pow(10, 18)) / reserve0;
-      BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
-      BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
+        BigInteger priceBigInt = (reserve1 * BigInteger.Pow(10, 18)) / reserve0;
+        BigInteger priceToken1Wei = priceBigInt / BigInteger.Pow(10, 18);
+        BigInteger priceToken2Wei = BigInteger.Divide(BigInteger.Pow(10, 36), priceBigInt);
 
-      double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
-      double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
+        double priceToken1 = (double)priceToken1Wei / (double)scaleToken1;
+        double priceToken2 = (double)priceToken2Wei / (double)scaleToken2;
 
-      return (priceToken1, priceToken2);
-    }
-    
-    public static string GetTokenContractAddress(Dictionary<string,string> TokensSmartContract,string tokenSymbol)
-    {
-      tokenSymbol = tokenSymbol.ToUpper();
-      if (TokensSmartContract.TryGetValue(tokenSymbol, out string address))
-      {
-        return address;
-      }
-    
-      throw new Exception($"Token {tokenSymbol} not found in the smart contracts dictionary.");
+        return (priceToken1, priceToken2);
     }
 
+    public static string GetTokenContractAddress(Dictionary<string, string> TokensSmartContract, string tokenSymbol)
+    {
+        tokenSymbol = tokenSymbol.ToUpper();
+        if (TokensSmartContract.TryGetValue(tokenSymbol, out string address))
+        {
+            return address;
+        }
+
+        throw new Exception($"Token {tokenSymbol} not found in the smart contracts dictionary.");
+    }
 }

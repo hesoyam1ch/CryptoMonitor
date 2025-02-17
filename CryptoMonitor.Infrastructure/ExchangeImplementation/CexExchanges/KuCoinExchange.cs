@@ -5,7 +5,7 @@ using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
 using Kucoin.Net.Clients;
 using Kucoin.Net.Objects;
 
-namespace CryptoMonitor.Infrastructure.Models.CexExchangesModels;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.DexExchange;
 
 [ExchangeType(CexEnum.KuCoin)]
 public class KuCoinExchange : ICexExchange
@@ -61,7 +61,6 @@ public class KuCoinExchange : ICexExchange
         var subscribeResult = await _socketClient.SpotApi.SubscribeToTickerUpdatesAsync(pair,
             data =>
             {
-                Console.WriteLine($"Live Price Update for {pair}: {data.Data.LastPrice}");
                 _lastPrice = (decimal)data.Data.LastPrice;
                 _priceUpdated.TrySetResult(_lastPrice);
             }

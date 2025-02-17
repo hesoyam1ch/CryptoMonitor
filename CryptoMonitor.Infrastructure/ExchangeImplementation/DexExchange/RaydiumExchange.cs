@@ -1,8 +1,7 @@
-﻿using CryptoMonitor.Infrastructure.Abstraction;
-using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
+﻿using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
 
-namespace CryptoMonitor.Infrastructure.Models.DexExchangeModels;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.DexExchange;
 
 [ExchangeType(DexEnum.Raydium)]
 public class RaydiumExchange : IDexExchange

@@ -1,13 +1,12 @@
-﻿using System.Numerics;
-using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
+﻿using CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
-using CryptoMonitor.Infrastructure.ExchangeRealisation.Code;
-using CryptoMonitor.Infrastructure.Models.DexExchangeModels.EthereumContractFunctions;
+using CryptoMonitor.Infrastructure.ExchangeImplementation.Code;
+using CryptoMonitor.Infrastructure.ExchangeImplementation.Code.EthereumContractFunctions;
 using Microsoft.Extensions.Configuration;
 using Nethereum.JsonRpc.WebSocketClient;
 using Nethereum.Web3;
 
-namespace CryptoMonitor.Infrastructure.Models.DexExchangeModels;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.DexExchange;
 
 [ExchangeType(DexEnum.Uniswap)]
 public class UniswapExchange : IDexExchange
@@ -197,13 +196,13 @@ public class UniswapExchange : IDexExchange
         if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
         {
             var resultV3 = await GetPriceFromPoolV3Async(liqudityPoolAddressV3, baseTokenDecimals, quoteTokenDecimals);
-            return (decimal)resultV3.inQuoteToken;
+            return (decimal)resultV3.inBaseToken;
         }
 
         if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV2 != "0xA000000000000000000000000000000000000000")
         {
             var resultV2 = await GetPriceFromPoolV2Async(liqudityPoolAddressV2, baseTokenDecimals, quoteTokenDecimals);
-            return (decimal)resultV2.inQuoteToken;
+            return (decimal)resultV2.inBaseToken;
         }
 
         throw new Exception();

@@ -1,4 +1,4 @@
-﻿namespace CryptoMonitor.Infrastructure.Abstraction;
+﻿namespace CryptoMonitor.Infrastructure.Abstraction.ExchangeAbstraction;
 
 public interface IExchange
 {
