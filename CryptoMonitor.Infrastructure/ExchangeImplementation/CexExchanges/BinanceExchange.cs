@@ -83,6 +83,7 @@ public class BinanceExchange : ICexExchange
             var completedTask = await Task.WhenAny(_priceUpdated.Task, Task.Delay(5000));
             if (completedTask == _priceUpdated.Task)
             {
+                await _socketClient.UnsubscribeAllAsync();
                 return _priceUpdated.Task.Result;
             }
         }

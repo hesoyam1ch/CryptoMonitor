@@ -5,7 +5,7 @@ using CryptoMonitor.Infrastructure.Abstraction.ExchangesFactory;
 using Kucoin.Net.Clients;
 using Kucoin.Net.Objects;
 
-namespace CryptoMonitor.Infrastructure.ExchangeImplementation.DexExchange;
+namespace CryptoMonitor.Infrastructure.ExchangeImplementation.CexExchanges;
 
 [ExchangeType(CexEnum.KuCoin)]
 public class KuCoinExchange : ICexExchange
@@ -70,11 +70,11 @@ public class KuCoinExchange : ICexExchange
         {
             _currentSubscription = subscribeResult.Data;
             _currentPair = pair;
-            Console.WriteLine($"Subscribed to {pair}");
             
             var completedTask = await Task.WhenAny(_priceUpdated.Task, Task.Delay(5000));
             if (completedTask == _priceUpdated.Task)
             {
+                await _socketClient.UnsubscribeAllAsync();
                 return _priceUpdated.Task.Result;
             }
         }
@@ -93,20 +93,20 @@ public class KuCoinExchange : ICexExchange
                         s.QuoteAsset.Equals(quoteCurrency, StringComparison.OrdinalIgnoreCase));
 
 
-        if (pairCurrency != null)
-        {
-            var tickerResult = await _restClient.SpotApi.ExchangeData.GetTickerAsync(pairCurrency.Name);
-
-            if (tickerResult.Success)
-            {
-                Console.WriteLine($"Price {pairCurrency.Name}: {tickerResult.Data.LastPrice}");
-               // return tickerResult.Data.LastPrice;
-            }
-            else
-            {
-                Console.WriteLine($"Can't get price for: {pairCurrency.Name}");
-            }
-        }
+        // if (pairCurrency != null)
+        // {
+        //     var tickerResult = await _restClient.SpotApi.ExchangeData.GetTickerAsync(pairCurrency.Name);
+        //
+        //     if (tickerResult.Success)
+        //     {
+        //         Console.WriteLine($"Price {pairCurrency.Name}: {tickerResult.Data.LastPrice}");
+        //        // return tickerResult.Data.LastPrice;
+        //     }
+        //     else
+        //     {
+        //         Console.WriteLine($"Can't get price for: {pairCurrency.Name}");
+        //     }
+        // }
 
         throw new Exception();
     }

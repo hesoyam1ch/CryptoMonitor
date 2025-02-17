@@ -151,6 +151,10 @@ public class UniswapExchange : IDexExchange
 
     public async Task<decimal?> GetLastPriceAsync(string baseCurrency, string quoteCurrency)
     {
+        if (baseCurrency == "SOL" && quoteCurrency == "USDT") // need to know all tokens which don't have pool in uni UI but have smart contract
+        {
+            throw new Exception("No avaible pool");
+        }
          int[] feeAvaibleAmount = new[] { 100, 500, 3000, 10000 };
         //int[] feeAvaibleAmount = new[] { 3000};
         string baseCurrencyAddress = Utils.GetTokenContractAddress(TokensSmartContract, baseCurrency);
@@ -193,15 +197,28 @@ public class UniswapExchange : IDexExchange
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
+        if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) && liqudityPoolAddressV3 != "0xA000000000000000000000000000000000000000")
         {
             var resultV3 = await GetPriceFromPoolV3Async(liqudityPoolAddressV3, baseTokenDecimals, quoteTokenDecimals);
-            return (decimal)resultV3.inBaseToken;
+            decimal price = (decimal)resultV3.inBaseToken;
+
+            if (price >= 1e18m || price <= 1e-18m) 
+            {
+                throw new Exception($"Некоректна ціна: {price}");
+            }
+
+            return price;
         }
 
-        if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV3) || liqudityPoolAddressV2 != "0xA000000000000000000000000000000000000000")
+        if (!string.IsNullOrWhiteSpace(liqudityPoolAddressV2) && liqudityPoolAddressV2 != "0xA000000000000000000000000000000000000000")
         {
             var resultV2 = await GetPriceFromPoolV2Async(liqudityPoolAddressV2, baseTokenDecimals, quoteTokenDecimals);
+            decimal price = (decimal)resultV2.inBaseToken;
+
+            if (price >= 1e18m || price <= 1e-18m) 
+            {
+                throw new Exception($"Некоректна ціна: {price}");
+            }
             return (decimal)resultV2.inBaseToken;
         }
 

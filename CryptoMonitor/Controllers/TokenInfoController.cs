@@ -16,12 +16,29 @@ public class TokenInfoController : ControllerBase
         _exchangeService = exchangeService;
     }
     
-    [HttpGet("getAllTokenPrice")]
-    public async Task<IActionResult> GetPriceFromAllExchange([FromQuery] string baseTokenCurrency, string quoteTokenCurrency)
+    [HttpGet("getRates")]
+    public async Task<IActionResult> GetRatesAsync([FromQuery]string baseTokenCurrency, string quoteTokenCurrency)
     {
         try
         {    
-            var result = await _exchangeService.GetAllPricesAsync(baseTokenCurrency,quoteTokenCurrency);
+            var result = await _exchangeService.GetRatesAsync( baseTokenCurrency,quoteTokenCurrency);
+            return Ok(result);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    
+    }
+    
+    [HttpGet("estimate")]
+
+    public async Task<IActionResult> EstimateAsync([FromQuery]decimal tokenAmount ,string baseTokenCurrency, string quoteTokenCurrency)
+    {
+        try
+        {    
+            var result = await _exchangeService.EstimatePriceAsync(tokenAmount, baseTokenCurrency,quoteTokenCurrency); 
             return Ok(result);
         }
         catch (Exception e)
